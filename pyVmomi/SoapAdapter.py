@@ -47,6 +47,10 @@ try:
 except:
    USERWORLD = False
 
+CONNECTION_RETRY_PAUSE_SEC = 1
+MAX_CONNECTION_RETRY_DURATION_SEC = 5
+MAX_CONNECTION_RETRIES = 5
+
 # Timeout value used for idle connections in client connection pool.
 # Default value is 900 seconds (15 minutes).
 CONNECTION_POOL_IDLE_TIMEOUT_SEC = 900

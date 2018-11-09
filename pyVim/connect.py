@@ -30,12 +30,21 @@ import ssl
 from xml.etree import ElementTree
 from xml.parsers.expat import ExpatError
 from six.moves import http_client
+from retrying import retry
+from socket import error as socket_error
 
 import requests
 from requests.auth import HTTPBasicAuth
 
 from pyVmomi import vim, vmodl, SoapStubAdapter, SessionOrientedStub
 from pyVmomi.SoapAdapter import CONNECTION_POOL_IDLE_TIMEOUT_SEC
+from pyVmomi.SoapAdapter import (
+        CONNECTION_POOL_IDLE_TIMEOUT_SEC,
+        CONNECTION_RETRY_PAUSE_SEC,
+        MAX_CONNECTION_RETRY_DURATION_SEC,
+        MAX_CONNECTION_RETRIES
+    )
+
 from pyVmomi.VmomiSupport import nsMap, versionIdMap, versionMap, IsChildVersion
 from pyVmomi.VmomiSupport import GetServiceVersions
 
@@ -772,6 +781,15 @@ def SmartStubAdapter(host='localhost', port=443, path='/sdk',
                           acceptCompressedResponses=acceptCompressedResponses,
                           connectionPoolTimeout=connectionPoolTimeout,
                           samlToken=samlToken, sslContext=sslContext)
+
+def retry_if_connect_error(exception):
+    """Returns True if Connection error"""
+    return isinstance(exception, socket_error)
+
+@retry(retry_on_exception=retry_if_connect_error, wrap_exception=False,
+       stop_max_attempt_number=MAX_CONNECTION_RETRIES,
+       wait_fixed=CONNECTION_RETRY_PAUSE_SEC*1000,
+       stop_max_delay=MAX_CONNECTION_RETRY_DURATION_SEC*1000)
 
 def SmartConnect(protocol='https', host='localhost', port=443, user='root', pwd='',
                  service="hostd", path="/sdk", connectionPoolTimeout=CONNECTION_POOL_IDLE_TIMEOUT_SEC,
